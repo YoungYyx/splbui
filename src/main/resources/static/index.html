@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script type="text/javascript" src="/js/jquery-3.6.0.js"></script>
+</head>
+
+<body>
+<h1>API测试</h1>
+<text id="showtext"></text>
+<button id="button" >开始</button>
+<button id="bt">获取数据</button>
+</body>
+<script type="text/javascript">
+    $("#button").click(function (){
+        alert("hh");
+        $.ajax({
+            type: "post",
+            url: "/mptcpStart",
+            success: function(data) {
+            }
+        });
+    });
+    $("#bt").click(function (){
+        $.ajax({
+            type: "post",
+            url: "/getMptcpSpeed",
+            success: function(data) {
+                alert(data);
+                $("showtext").contents(data);
+            }
+        });
+    });
+</script>
+</html>

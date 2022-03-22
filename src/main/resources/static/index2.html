@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="js/echarts.js"></script>
+    <script src="js/jquery-3.6.0.js"></script>
+<!--    <script src="js/jquery-3.6.0.min.js"></script>-->
+
+    <style>
+        .box1{
+            /*background-color: aqua;*/
+            border: 2px solid black;
+            margin-left: 100px;
+            margin-top: -10px;
+        }
+        .box2{
+            border: 2px solid black;
+            margin-left: 100px;
+            margin-top: -10px;
+        }
+        .box3{
+            line-height: 50px;
+        }
+        .path1{
+            width: 400px;
+            height: 300px;
+            /*background-color: aqua;*/
+            margin-top: -760px;
+            margin-left: 1000px;
+            border: 1px solid black;
+        }
+        .path2{
+            width: 400px;
+            height: 300px;
+            /*background-color: blanchedalmond;*/
+            margin-top: 60px;
+            margin-left: 1000px;
+            border: 1px solid black;
+        }
+        .buttons{
+            width: 100px;
+            height: 380px;
+            margin-top: -520px;
+            margin-left: 1550px;
+            /*background-color: aquamarine;*/
+        }
+        .begin{
+            width: 100px;
+            height: 50px;
+            font-size: larger;
+        }
+        .over{
+            width: 100px;
+            height: 50px;
+            font-size: larger;
+            margin-top: 280px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="all">
+    <div class="box">
+        <h1 style="text-align: center"><b>SPLB与MPTCP实验对比</b> </h1>
+        <h3 style="margin-top: -20px;margin-left: 400px;">吞吐量对比图</h3>
+        <!-- 为 ECharts 准备一个定义了宽高的 DOM -->
+        <div id="main" class="box1" style="width: 700px;height:400px;"></div>
+        <h3  style="margin-left: 400px;">抖动对比图</h3>
+        <div id="second" class="box2" style="width: 700px;height:400px;"></div>
+    </div>
+
+    <div class="box3">
+        <div class="path1">
+            <h2 style="margin-top: auto;text-align: left;margin-left: 15px">
+                Path1设置：
+                <br>
+                带宽：XX MB
+                <br>
+                时延：XX ms
+            </h2>
+        </div>
+        <div class="path2">
+            <h2 style="margin-top: auto;text-align: left;margin-left: 15px">
+                Path2设置：
+                <br>
+                带宽：XX MB
+                <br>
+                时延：XX ms
+            </h2>
+        </div>
+    </div>
+
+    <div class="buttons">
+        <button class="begin" id="bg">开始</button>
+        <button class="over" id="end">结束</button>
+    </div>
+</div>
+
+
+<script>
+    $("#bg").click(function () {
+        alert("开始运行！");
+        $.ajax({
+            type: "post",
+            url: "/mptcpStart",
+            success: function(data) {
+            }
+        });
+    });
+    $("#end").click(function () {
+        alert("结束！");
+        $.ajax({
+            type: "post",
+            url: "/mptcpEnd",
+            success: function(data) {
+            }
+        });
+    });
+
+
+    var myChart2 = echarts.init(document.getElementById('second'));
+    // 使用刚指定的配置项和数据显示图表。
+    var option2 = {
+        title: {
+            text: '抖动'
+        },
+        tooltip: {
+            trigger: 'axis'
+        },
+        legend: {
+            data: ['Path1', 'Path2', 'MPTCP']
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            containLabel: true
+        },
+        toolbox: {
+            feature: {
+                saveAsImage: {}
+            }
+        },
+        xAxis: {
+            type: 'category',
+            boundaryGap: false,
+            data: ['1s', '2s', '3s', '4s', '5s', '6s', '7s','8s','9s']
+        },
+        yAxis: {
+            type: 'value'
+        },
+        series: [
+            {
+                name: 'Path1',
+                type: 'line',
+                smooth: true,
+                stack: '总量',
+                data: [0, 132, 101, 134, 90, 230, 210,212,212]
+            },
+            {
+                name: 'Path2',
+                type: 'line',
+                smooth: true,
+                stack: '总量',
+                data: [0, 182, 191, 234, 290, 330, 310,313,312]
+            },
+            {
+                name: 'MPTCP',
+                type: 'line',
+                smooth: true,
+                stack: '总量',
+                data: [0, 220, 190, 134, 170, 310, 390,393,390]
+            }
+        ]
+    };
+    myChart2.setOption(option2);
+
+    var myChart = echarts.init(document.getElementById('main'));
+
+    let option;
+
+    let base = new Date();
+    let date = [];
+    let now = new Date(base);
+
+    let dataPath1 = [];
+    let dataPath2 = [];
+    let dataTotal = [];
+
+    let Path1;
+    let Path2;
+    let total;
+
+    function addData(shift) {
+        let time = new Date();
+        now = [time.getHours(), time.getMinutes(), time.getSeconds()].join(':');
+
+        date.push(now);
+
+        getData();
+        dataPath1.push(Path1);
+        dataPath2.push(Path2);
+        dataTotal.push(total);
+
+        if (shift) {
+            date.shift();
+            dataPath1.shift();
+            dataPath2.shift();
+            dataTotal.shift();
+        }
+        now = new Date(+new Date(now) + 3000);
+    }
+
+    function getData() {
+        //     $.ajax({
+        //             type: "post",
+        //             url: "/getSplbEth0Speed",
+        //             success: function(data) {
+        //                Path1 = data;
+        //             }
+        //         })
+        // $.ajax({
+        //     type: "post",
+        //     url: "/getSplbEth1Speed",
+        //     success: function(data) {
+        //         Path2 = data;
+        //     }
+        // })
+        $.ajax({
+            type: "post",
+            url: "/getMptcpSpeed",
+            success: function(data) {
+                Path2 = data;
+            }
+        })
+        //total = parseInt(Path1) + parseInt(Path2);
+       total = parseInt(Path2)
+    }
+
+    for (let i = 1; i < 40; i++) {
+        addData();
+    }
+
+    option = {
+        title: {
+                    text: '吞吐量'
+                },
+                tooltip: {
+                    trigger: 'axis'
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                toolbox: {
+                    feature: {
+                        saveAsImage: {}
+                    }
+                },
+        xAxis: {
+            type: 'category',
+            boundaryGap: false,
+            data: date
+        },
+        yAxis: {
+            boundaryGap: [0, '100%'],
+            type: 'value'
+        },
+        legend: {
+            data: ['Path1', 'Path2','Total']
+        },
+        series: [
+            {
+                name: 'Path1',
+                type: 'line',
+                smooth: true,
+                symbol: 'none',
+                stack: 'a',
+                areaStyle: {
+                    normal: {}
+                },
+                data: dataPath1
+            },
+            {
+                name: 'Path2',
+                type: 'line',
+                smooth: true,
+                symbol: 'none',
+                stack: 'a',
+                areaStyle: {
+                    normal: {}
+                },
+                data: dataPath2
+            },
+            {
+                name: 'Total',
+                type: 'line',
+                smooth: true,
+                symbol: 'none',
+                stack: 'a',
+                areaStyle: {
+                    normal: {}
+                },
+                data: dataTotal
+            }
+        ]
+    };
+
+    setInterval(function () {
+        addData(true);
+        myChart.setOption({
+            xAxis: {
+                data: date
+            },
+            series: [
+                {
+                    name: 'Path1',
+                    data: dataPath1
+                },
+                {
+                    name: 'Path2',
+                    data: dataPath2
+                },
+                {
+                    name: 'Total',
+                    data: dataTotal
+                }
+            ]
+        });
+    }, 1000);
+
+
+
+    if (option && typeof option === 'object') {
+        myChart.setOption(option);
+    }
+
+
+    // // 基于准备好的dom，初始化echarts实例
+    // var myChart = echarts.init(document.getElementById('main'));
+    //
+    // // 使用刚指定的配置项和数据显示图表。
+    // option = {
+    //     title: {
+    //         text: '吞吐量'
+    //     },
+    //     tooltip: {
+    //         trigger: 'axis'
+    //     },
+    //     legend: {
+    //         data: ['Path1', 'Path2', '1+2']
+    //     },
+    //     grid: {
+    //         left: '3%',
+    //         right: '4%',
+    //         bottom: '3%',
+    //         containLabel: true
+    //     },
+    //     toolbox: {
+    //         feature: {
+    //             saveAsImage: {}
+    //         }
+    //     },
+    //     xAxis: {
+    //         type: 'category',
+    //         boundaryGap: false,
+    //         data : data
+    //     },
+    //     yAxis: {
+    //         type: 'value',
+    //         name : '吞吐量',
+    //     },
+    //     series: [
+    //         {
+    //             name: 'Path1',
+    //             type: 'line',
+    //             smooth: true
+    //         },
+    //         {
+    //             name: 'Path2',
+    //             type: 'line',
+    //             smooth: true
+    //         },
+    //         // {
+    //         //     name: 'MPTCP',
+    //         //     type: 'line',
+    //         //     smooth: true,
+    //         //     stack: '总量',
+    //         //     data:[]
+    //         //     //data: [0, 220, 190, 134, 170, 310, 390]
+    //         // },
+    //         {
+    //             name: '1+2',
+    //             type: 'line',
+    //             smooth: true
+    //         }
+    //     ]
+    //
+    // };
+    //
+    // var base = 0;
+    // var data1 = 0;
+    // var data2 = 0;
+    //
+    // var date = [];
+    // var path1data=[];        //path1数组
+    // var path2data=[];        //path2数组
+    // var totalpath = [];
+    //
+    // function addData(shift) {
+    //     base += 3;
+    //     date.push(base);
+    //     $.ajax({
+    //         type: "post",
+    //         url: "/getSplbEth0Speed",
+    //         success: function(data) {
+    //             data1 = data;
+    //         }
+    //     })
+    //     $.ajax({
+    //         type: "post",
+    //         url: "/getSplbEth1Speed",
+    //         success: function(data) {
+    //             data2 = data;
+    //         }
+    //     })
+    //     path1data.push(data1);
+    //     path2data.push(data2);
+    //     totalpath.push(data1+data2);
+    //
+    //     if (shift){
+    //         date.shift();
+    //         path1data.shift();
+    //         path2data.shift();
+    //         totalpath.shift();
+    //     }
+    //
+    // }
+    //
+    // for (var i = 0; i < 100; i++) {
+    //     addData();
+    // }
+    //
+    // //setInterval以指定时间为周期循环执行
+    // setInterval(function () {
+    //     addData(true);
+    //     myChart.setOption({
+    //         xAxis: {
+    //             data: date
+    //         },
+    //         series: [
+    //             {
+    //                 name:'Path1',
+    //                 data: path1data
+    //             },
+    //             {
+    //                 name:'Path2',
+    //                 data: path2data
+    //             },
+    //             {
+    //                 name:'1+2',
+    //                 data: totalpath
+    //             }
+    //         ]
+    //     });
+    // }, 3000);
+</script>
+
+</body>
+</html>l>

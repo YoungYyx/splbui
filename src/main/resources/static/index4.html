@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="js/echarts.js"></script>
+    <script src="js/jquery-3.6.0.js"></script>
+<!--    <script src="js/jquery-3.6.0.min.js"></script>-->
+
+    <style>
+        .box1{
+            /*background-color: aqua;*/
+            border: 2px solid black;
+            margin-left: 100px;
+            margin-top: -10px;
+        }
+        .box2{
+            border: 2px solid black;
+            margin-left: 100px;
+            margin-top: -10px;
+        }
+        .box3{
+            line-height: 50px;
+        }
+        .path1{
+            width: 400px;
+            height: 300px;
+            /*background-color: aqua;*/
+            margin-top: -760px;
+            margin-left: 1000px;
+            border: 1px solid black;
+        }
+        .path2{
+            width: 400px;
+            height: 300px;
+            /*background-color: blanchedalmond;*/
+            margin-top: 60px;
+            margin-left: 1000px;
+            border: 1px solid black;
+        }
+        .buttons1{
+            width: 120px;
+            height: 200px;
+            margin-top: -600px;
+            margin-left: 1550px;
+            /*background-color: aquamarine;*/
+        }
+        .buttons2{
+            width: 120px;
+            height: 200px;
+            margin-top: 160px;
+            margin-left: 1550px;
+            /*background-color: #ff7fac;*/
+        }
+        .begin1{
+            width: 130px;
+            height: 50px;
+            font-size: larger;
+        }
+        .over1{
+            width: 130px;
+            height: 50px;
+            font-size: larger;
+            margin-top: 50px;
+        }
+        .begin2{
+            width: 130px;
+            height: 50px;
+            font-size: larger;
+        }
+        .over2{
+            width: 130px;
+            height: 50px;
+            font-size: larger;
+            margin-top: 50px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="all">
+    <div class="box">
+        <h1 style="text-align: center"><b>SPLB与MPTCP实验对比</b> </h1>
+        <h3 style="margin-top: -20px;margin-left: 400px;">SPLB吞吐量</h3>
+        <!-- 为 ECharts 准备一个定义了宽高的 DOM -->
+        <div id="main" class="box1" style="width: 700px;height:400px;"></div>
+        <h3  style="margin-left: 400px;">MPTCP吞吐量</h3>
+        <div id="second" class="box2" style="width: 700px;height:400px;"></div>
+    </div>
+
+    <div class="box3">
+        <div class="path1">
+            <h2 style="margin-top: auto;text-align: left;margin-left: 15px">
+                Path1设置：
+                <br>
+                带宽：300Mbps固定带宽
+                <br>
+                时延：20～40ms变化时延
+            </h2>
+        </div>
+        <div class="path2">
+            <h2 style="margin-top: auto;text-align: left;margin-left: 15px">
+                Path2设置：
+                <br>
+                带宽：60～100Mbps变化带宽
+                <br>
+                时延：20～40ms变化时延
+            </h2>
+        </div>
+    </div>
+
+    <div class="buttons1">
+        <button class="begin1" id="bg">SPLB开始</button>
+        <button class="over1" id="ovs">SPLB结束</button>
+    </div>
+
+    <div class="buttons2">
+        <button class="begin2" id="mp">MPTCP开始</button>
+        <button class="over2" id="ovm">MPTCP结束</button>
+    </div>
+</div>
+
+
+<script>
+    $("#bg").click(function () {
+        alert("SPLB开始运行！");
+        $.ajax({
+            type: "post",
+            url: "/splbStart",
+        });
+    });
+
+    $("#mp").click(function () {
+        alert("MPTCP开始运行！");
+        $.ajax({
+            type: "post",
+            url: "/mptcpStart",
+        });
+    });
+
+    $("#ovs").click(function () {
+        alert("SPLB结束运行！");
+        $.ajax({
+            type: "post",
+            url: "/splbEnd",
+        });
+    });
+
+    $("#ovm").click(function () {
+        alert("MPTCP结束运行！");
+        $.ajax({
+            type: "post",
+            url: "/mptcpEnd",
+        });
+    });
+
+
+    //MPTCP图
+    var myChart2 = echarts.init(document.getElementById('second'));
+    let option2;
+
+    let base2 = new Date();
+    let date2 = [];
+    let now2 = new Date(base2);
+
+    let dataMptcp = [];
+    let dataEth1 = [];
+    let dataEth0 = [];
+    let dataEth0Rtt = [];
+    let dataEth1Rtt = [];
+
+    let mptcp;
+    let eth0;
+    let eth1;
+    let eth0rtt;
+    let eth1rtt;
+
+    function addData2(shift) {
+        let time2 = new Date();
+        now2 = [time2.getHours(), time2.getMinutes(), time2.getSeconds()].join(':');
+
+        date2.push(now2);
+
+        getData2();
+        dataMptcp.push(mptcp);
+        dataEth0.push(eth0);
+        dataEth1.push(eth1);
+        dataEth0Rtt.push(eth0rtt);
+        dataEth1Rtt.push(eth1rtt);
+
+        if (shift) {
+            date2.shift();
+            dataMptcp.shift();
+            dataEth0.shift();
+            dataEth1.shift();
+            dataEth0Rtt.shift();
+            dataEth1Rtt.shift();
+        }
+        now2 = new Date(+new Date(now2) + 3000);
+    }
+
+    function getData2() {
+        $.ajax({
+            type: "post",
+            url: "/getMptcpSpeed",
+            success: function(data) {
+                mptcp = data;
+            }
+        })
+        $.ajax({
+            type: "post",
+            url: "/getRealEth0Speed",
+            success: function(data) {
+                eth0 = data;
+            }
+        })
+        $.ajax({
+            type: "post",
+            url: "/getRealEth1Speed",
+            success: function(data) {
+                eth1 = data;
+            }
+        })
+        $.ajax({
+            type: "post",
+            url: "/getRealEth0Rtt",
+            success: function(data) {
+                eth0rtt = data;
+            }
+        })
+        $.ajax({
+            type: "post",
+            url: "/getRealEth1Rtt",
+            success: function(data) {
+                eth1rtt = data;
+            }
+        })
+    }
+
+    for (let i = 1; i < 40; i++) {
+        addData2();
+    }
+
+    option2 = {
+        legend: {
+            data: ['MPTCP','Eth0Speed','Eth1Speed','Eth0RTT','Eth1RTT']
+        },
+        tooltip: {
+            trigger: 'axis'
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            containLabel: true
+        },
+        toolbox: {
+            feature: {
+                saveAsImage: {}
+            }
+        },
+        xAxis: {
+            type: 'category',
+            boundaryGap: false,
+            data: date2
+        },
+        yAxis:[
+            {
+                boundaryGap: [0, '100%'],
+                type: 'value',
+                name: '吞吐量',
+                min:0,
+                max:400,
+                position: "left",
+                axisLine: {
+                    show: false  //不显示坐标轴轴线
+                },
+                axisTick: {
+                    show: false  //不显示坐标轴刻度
+                }
+            },
+            {
+                boundaryGap: [0, '100%'],
+                type: 'value',
+                name: '时延',
+                min: 0,
+                max: 100,
+                position: "right",
+                axisLine: {
+                    show: false  //不显示坐标轴轴线
+                },
+                axisTick: {
+                    show: false  //不显示坐标轴刻度
+                }
+            },
+        ],
+        series: [
+            {
+                name: 'MPTCP',
+                type: 'line',
+                smooth: true,
+                data: dataMptcp,
+                yAxisIndex: 0
+            },
+            {
+                name: 'Eth0Speed',
+                type: 'line',
+                smooth: true,
+                data: dataEth0,
+                yAxisIndex: 0
+            },
+            {
+                name: 'Eth1Speed',
+                type: 'line',
+                smooth: true,
+                data: dataEth1,
+                yAxisIndex: 0
+            },
+            {
+                name: 'Eth0RTT',
+                type: 'line',
+                smooth: true,
+                data: dataEth0Rtt,
+                yAxisIndex: 1
+            },
+            {
+                name: 'Eth1RTT',
+                type: 'line',
+                smooth: true,
+                data: dataEth1Rtt,
+                yAxisIndex: 1
+            }
+        ]
+    };
+
+    setInterval(function () {
+        addData2(true);
+        myChart2.setOption({
+            xAxis: {
+                data: date2
+            },
+            series: [
+                {
+                    name: 'MPTCP',
+                    data: dataMptcp
+                },
+                {
+                    name: 'Eth0Speed',
+                    data: dataEth0
+                },
+                {
+                    name: 'Eth1Speed',
+                    data: dataEth1
+                },
+                {
+                    name: 'Eth0RTT',
+                    data: dataEth0Rtt
+                },
+                {
+                    name: 'Eth1RTT',
+                    data: dataEth1Rtt
+                }
+            ]
+        });
+    }, 3000);
+
+
+
+    if (option2 && typeof option2 === 'object') {
+        myChart2.setOption(option2);
+    }
+
+    //SPLB图
+    var myChart = echarts.init(document.getElementById('main'));
+
+    let option;
+
+    let base = new Date();
+    let date = [];
+    let now = new Date(base);
+
+    let dataPath1 = [];
+    let dataPath2 = [];
+    let dataTotal = [];
+
+    let Path1;
+    let Path2;
+    let total;
+
+    function addData(shift) {
+        let time = new Date();
+        now = [time.getHours(), time.getMinutes(), time.getSeconds()].join(':');
+
+        date.push(now);
+
+        getData();
+        dataPath1.push(Path1);
+        dataPath2.push(Path2);
+        dataTotal.push(total);
+
+        if (shift) {
+            date.shift();
+            dataPath1.shift();
+            dataPath2.shift();
+            dataTotal.shift();
+        }
+        now = new Date(+new Date(now) + 3000);
+    }
+
+    function getData() {
+        $.ajax({
+            type: "post",
+            url: "/getSplbEth0Speed",
+            success: function(data) {
+                Path1 = data;
+            }
+        })
+        $.ajax({
+            type: "post",
+            url: "/getSplbEth1Speed",
+            success: function(data) {
+                Path2 = data;
+            }
+        })
+
+        total = parseInt(Path1) + parseInt(Path2);
+    }
+
+    for (let i = 1; i < 40; i++) {
+        addData();
+    }
+
+    option = {
+                tooltip: {
+                    trigger: 'axis'
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                toolbox: {
+                    feature: {
+                        saveAsImage: {}
+                    }
+                },
+        xAxis: {
+            type: 'category',
+            boundaryGap: false,
+            data: date
+        },
+        yAxis: {
+            boundaryGap: [0, '100%'],
+            type: 'value'
+        },
+        legend: {
+            data: ['Path1', 'Path2','Total']
+        },
+        series: [
+            {
+                name: 'Path1',
+                type: 'line',
+                smooth: true,
+                data: dataPath1
+            },
+            {
+                name: 'Path2',
+                type: 'line',
+                smooth: true,
+                data: dataPath2
+            },
+            {
+                name: 'Total',
+                type: 'line',
+                smooth: true,
+                data: dataTotal
+            }
+        ]
+    };
+
+    setInterval(function () {
+        addData(true);
+        myChart.setOption({
+            xAxis: {
+                data: date
+            },
+            series: [
+                {
+                    name: 'Path1',
+                    data: dataPath1
+                },
+                {
+                    name: 'Path2',
+                    data: dataPath2
+                },
+                {
+                    name: 'Total',
+                    data: dataTotal
+                }
+            ]
+        });
+    }, 3000);
+
+
+
+    if (option && typeof option === 'object') {
+        myChart.setOption(option);
+    }
+
+
+    // // 基于准备好的dom，初始化echarts实例
+    // var myChart = echarts.init(document.getElementById('main'));
+    //
+    // // 使用刚指定的配置项和数据显示图表。
+    // option = {
+    //     title: {
+    //         text: '吞吐量'
+    //     },
+    //     tooltip: {
+    //         trigger: 'axis'
+    //     },
+    //     legend: {
+    //         data: ['Path1', 'Path2', '1+2']
+    //     },
+    //     grid: {
+    //         left: '3%',
+    //         right: '4%',
+    //         bottom: '3%',
+    //         containLabel: true
+    //     },
+    //     toolbox: {
+    //         feature: {
+    //             saveAsImage: {}
+    //         }
+    //     },
+    //     xAxis: {
+    //         type: 'category',
+    //         boundaryGap: false,
+    //         data : data
+    //     },
+    //     yAxis: {
+    //         type: 'value',
+    //         name : '吞吐量',
+    //     },
+    //     series: [
+    //         {
+    //             name: 'Path1',
+    //             type: 'line',
+    //             smooth: true
+    //         },
+    //         {
+    //             name: 'Path2',
+    //             type: 'line',
+    //             smooth: true
+    //         },
+    //         // {
+    //         //     name: 'MPTCP',
+    //         //     type: 'line',
+    //         //     smooth: true,
+    //         //     stack: '总量',
+    //         //     data:[]
+    //         //     //data: [0, 220, 190, 134, 170, 310, 390]
+    //         // },
+    //         {
+    //             name: '1+2',
+    //             type: 'line',
+    //             smooth: true
+    //         }
+    //     ]
+    //
+    // };
+    //
+    // var base = 0;
+    // var data1 = 0;
+    // var data2 = 0;
+    //
+    // var date = [];
+    // var path1data=[];        //path1数组
+    // var path2data=[];        //path2数组
+    // var totalpath = [];
+    //
+    // function addData(shift) {
+    //     base += 3;
+    //     date.push(base);
+    //     $.ajax({
+    //         type: "post",
+    //         url: "/getSplbEth0Speed",
+    //         success: function(data) {
+    //             data1 = data;
+    //         }
+    //     })
+    //     $.ajax({
+    //         type: "post",
+    //         url: "/getSplbEth1Speed",
+    //         success: function(data) {
+    //             data2 = data;
+    //         }
+    //     })
+    //     path1data.push(data1);
+    //     path2data.push(data2);
+    //     totalpath.push(data1+data2);
+    //
+    //     if (shift){
+    //         date.shift();
+    //         path1data.shift();
+    //         path2data.shift();
+    //         totalpath.shift();
+    //     }
+    //
+    // }
+    //
+    // for (var i = 0; i < 100; i++) {
+    //     addData();
+    // }
+    //
+    // //setInterval以指定时间为周期循环执行
+    // setInterval(function () {
+    //     addData(true);
+    //     myChart.setOption({
+    //         xAxis: {
+    //             data: date
+    //         },
+    //         series: [
+    //             {
+    //                 name:'Path1',
+    //                 data: path1data
+    //             },
+    //             {
+    //                 name:'Path2',
+    //                 data: path2data
+    //             },
+    //             {
+    //                 name:'1+2',
+    //                 data: totalpath
+    //             }
+    //         ]
+    //     });
+    // }, 3000);
+</script>
+
+</body>
+</html>l>
